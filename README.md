@@ -15,9 +15,11 @@ A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
       password        bobpop
     </match>
 
-----
+## Note
 
-Majority of the code are cloned from  [fluent-plugin-out-http][2]
+* Does not support http.
+* Uses SSL, but does not verify the peer.
+* Majority of the code are cloned from  [fluent-plugin-out-http][2]
 
   [1]: http://fluentd.org/
   [2]: https://github.com/tagomoris/fluent-plugin-out-http
