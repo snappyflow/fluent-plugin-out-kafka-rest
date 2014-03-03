@@ -7,7 +7,7 @@ A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
     <match *>
       type https
       endpoint_url    https://localhost.local/api/
-      http_method     put
+      http_method     post
       serializer      json
       rate_limit_msec 100
       authentication  basic
