@@ -1,9 +1,10 @@
-class Fluent::HTTPOutput < Fluent::Output
-  Fluent::Plugin.register_output('http', self)
+class Fluent::HTTPSOutput < Fluent::Output
+  Fluent::Plugin.register_output('https', self)
 
   def initialize
     super
-    require 'net/http'
+    require 'net/https'
+    require 'openssl'
     require 'uri'
     require 'yajl'
   end
@@ -102,7 +103,12 @@ class Fluent::HTTPOutput < Fluent::Output
         req.basic_auth(@username, @password)
       end
       @last_request_time = Time.now.to_f
-      res = Net::HTTP.new(uri.host, uri.port).start {|http| http.request(req) }
+      https = Net::HTTP.new(uri.host, uri.port)
+      https.use_ssl = true 
+#      https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE 
+#      https.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      res = https.start {|http| http.request(req) }
     rescue IOError, EOFError, SystemCallError
       # server didn't respond
       $log.warn "Net::HTTP.#{req.method.capitalize} raises exception: #{$!.class}, '#{$!.message}'"

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
+require 'net/https'
 require 'uri'
 require 'yajl'
-require 'fluent/test/http_output_test'
-require 'fluent/plugin/out_http'
-
+require 'fluent/test/https_output_test'
+require 'fluent/plugin/out_https'
+require 'webrick'
+require 'webrick/https'
 
 TEST_LISTEN_PORT = 5126
 
 
-class HTTPOutputTestBase < Test::Unit::TestCase
+class HTTPSOutputTestBase < Test::Unit::TestCase
   # setup / teardown for servers
   def setup
     Fluent::Test.setup
@@ -19,10 +21,10 @@ class HTTPOutputTestBase < Test::Unit::TestCase
     @auth = false
     @dummy_server_thread = Thread.new do
       srv = if ENV['VERBOSE']
-              WEBrick::HTTPServer.new({:BindAddress => '127.0.0.1', :Port => TEST_LISTEN_PORT})
+              WEBrick::HTTPServer.new({:BindAddress => '127.0.0.1', :Port => TEST_LISTEN_PORT, SSLEnable => true, :SSLCertName  => [ [ 'CN', WEBrick::Utils::getservername ] ]})
             else
               logger = WEBrick::Log.new('/dev/null', WEBrick::BasicLog::DEBUG)
-              WEBrick::HTTPServer.new({:BindAddress => '127.0.0.1', :Port => TEST_LISTEN_PORT, :Logger => logger, :AccessLog => []})
+              WEBrick::HTTPServer.new({:BindAddress => '127.0.0.1', :Port => TEST_LISTEN_PORT, :Logger => logger, :AccessLog => [], :SSLEnable => true, :SSLCertName  => [ [ 'CN', WEBrick::Utils::getservername ] ]})
             end
       begin
         allowed_methods = %w(POST PUT)
@@ -91,7 +93,10 @@ class HTTPOutputTestBase < Test::Unit::TestCase
   def test_dummy_server
     host = '127.0.0.1'
     port = TEST_LISTEN_PORT
-    client = Net::HTTP.start(host, port)
+    https = Net::HTTP.new(host, port)
+    https.use_ssl = true
+    https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    client = https.start() 
 
     assert_equal '200', client.request_get('/').code
     assert_equal '200', client.request_post('/api/service/metrics/hoge', 'number=1&mode=gauge').code
@@ -107,7 +112,7 @@ class HTTPOutputTestBase < Test::Unit::TestCase
     assert_equal '403', client.request_post('/api/service/metrics/pos', 'number=30&mode=gauge').code
 
     req_with_auth = lambda do |number, mode, user, pass|
-      url = URI.parse("http://#{host}:#{port}/api/service/metrics/pos")
+      url = URI.parse("https://#{host}:#{port}/api/service/metrics/pos")
       req = Net::HTTP::Post.new(url.path)
       req.basic_auth user, pass
       req.set_form_data({'number'=>number, 'mode'=>mode})
@@ -132,18 +137,18 @@ class HTTPOutputTestBase < Test::Unit::TestCase
   end
 end
 
-class HTTPOutputTest < HTTPOutputTestBase
+class HTTPSOutputTest < HTTPSOutputTestBase
   CONFIG = %[
-    endpoint_url http://127.0.0.1:#{TEST_LISTEN_PORT}/api/
+    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
   ]
 
   CONFIG_JSON = %[
-    endpoint_url http://127.0.0.1:#{TEST_LISTEN_PORT}/api/
+    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     serializer json
   ]
 
   CONFIG_PUT = %[
-    endpoint_url http://127.0.0.1:#{TEST_LISTEN_PORT}/api/
+    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     http_method put
   ]
 
@@ -154,21 +159,21 @@ class HTTPOutputTest < HTTPOutputTestBase
   RATE_LIMIT_MSEC = 1200
 
   CONFIG_RATE_LIMIT = %[
-    endpoint_url http://127.0.0.1:#{TEST_LISTEN_PORT}/api/
+    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     rate_limit_msec #{RATE_LIMIT_MSEC}
   ]
 
   def create_driver(conf=CONFIG, tag='test.metrics')
-    Fluent::Test::OutputTestDriver.new(Fluent::HTTPOutput, tag).configure(conf)
+    Fluent::Test::OutputTestDriver.new(Fluent::HTTPSOutput, tag).configure(conf)
   end
 
   def test_configure
     d = create_driver
-    assert_equal "http://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
+    assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
     assert_equal :form, d.instance.serializer
 
     d = create_driver CONFIG_JSON
-    assert_equal "http://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
+    assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
     assert_equal :json, d.instance.serializer
   end
 

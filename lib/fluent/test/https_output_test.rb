@@ -41,14 +41,20 @@ module WEBrick::HTTPServlet
 end
 
 def get_code(server, port, path, headers={})
-  require 'net/http' 
-  Net::HTTP.start(server, port){|http|
+  require 'net/https' 
+  https = Net::HTTP.new(server, port)
+  https.use_ssl = true
+  https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  https.start {|http|
     http.get(path, headers).code
   } 
 end 
 def get_content(server, port, path, headers={})
-  require 'net/http'
-  Net::HTTP.start(server, port){|http|
+  require 'net/https'
+  https = Net::HTTP.new(server, port)
+  https.use_ssl = true
+  https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  https.start {|http|
     http.get(path, headers).body
   } 
 end
