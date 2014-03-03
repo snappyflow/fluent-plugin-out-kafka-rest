@@ -22,4 +22,4 @@ A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
 * Majority of the code are cloned from  [fluent-plugin-out-http][2]
 
   [1]: http://fluentd.org/
-  [2]: https://github.com/tagomoris/fluent-plugin-out-http
+  [2]: https://github.com/ento/fluent-plugin-out-http
