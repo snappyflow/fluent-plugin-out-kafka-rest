@@ -1,12 +1,12 @@
-# fluent-plugin-out-http, a plugin for [Fluentd](http://fluentd.org)
+# fluent-plugin-out-https, a plugin for [Fluentd](http://fluentd.org)
 
-A generic [fluentd][1] output plugin for sending logs to an HTTP endpoint.
+A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
 
 ## Configs
 
     <match *>
-      type http
-      endpoint_url    http://localhost.local/api/
+      type https
+      endpoint_url    https://localhost.local/api/
       http_method     put
       serializer      json
       rate_limit_msec 100
@@ -17,7 +17,7 @@ A generic [fluentd][1] output plugin for sending logs to an HTTP endpoint.
 
 ----
 
-Heavily based on [fluent-plugin-growthforecast][2]
+Majority of the code are cloned from  [fluent-plugin-out-http][2]
 
   [1]: http://fluentd.org/
-  [2]: https://github.com/tagomoris/fluent-plugin-growthforecast
+  [2]: https://github.com/tagomoris/fluent-plugin-out-http
