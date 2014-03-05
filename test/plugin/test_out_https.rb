@@ -139,31 +139,31 @@ end
 
 class HTTPSOutputTest < HTTPSOutputTestBase
   CONFIG = %[
-    use_ssl = true
+    use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
   ]
 
   CONFIG_JSON = %[
-    use_ssl = true
+    use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     serializer json
   ]
 
   CONFIG_PUT = %[
-    use_ssl = true
+    use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     http_method put
   ]
 
   CONFIG_HTTP_ERROR = %[
-    use_ssl = true
+    use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT + 1}/api/
   ]
 
   RATE_LIMIT_MSEC = 1200
 
   CONFIG_RATE_LIMIT = %[
-    use_ssl = true
+    use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
     rate_limit_msec #{RATE_LIMIT_MSEC}
   ]
