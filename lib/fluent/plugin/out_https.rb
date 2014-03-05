@@ -1,5 +1,5 @@
 class Fluent::HTTPSOutput < Fluent::Output
-  Fluent::Plugin.register_output('https', self)
+  Fluent::Plugin.register_output('http', self)
 
   def initialize
     super
@@ -8,6 +8,9 @@ class Fluent::HTTPSOutput < Fluent::Output
     require 'uri'
     require 'yajl'
   end
+
+  # https or http
+  config_param :use_ssl, :bool, :default => false
 
   # Endpoint URL ex. localhost.local/api/
   config_param :endpoint_url, :string
@@ -29,6 +32,8 @@ class Fluent::HTTPSOutput < Fluent::Output
 
   def configure(conf)
     super
+
+    @use_ssl = conf['use_ssl']
 
     serializers = [:json, :form]
     @serializer = if serializers.include? @serializer.intern
@@ -104,8 +109,8 @@ class Fluent::HTTPSOutput < Fluent::Output
       end
       @last_request_time = Time.now.to_f
       https = Net::HTTP.new(uri.host, uri.port)
-      https.use_ssl = true 
-#      https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE 
+      https.use_ssl = @use_ssl
+      https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE 
 #      https.verify_mode = OpenSSL::SSL::VERIFY_PEER
       https.verify_mode = OpenSSL::SSL::VERIFY_NONE
       res = https.start {|http| http.request(req) }

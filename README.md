@@ -1,11 +1,12 @@
 # fluent-plugin-out-https, a plugin for [Fluentd](http://fluentd.org)
 
-A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
+A generic [fluentd][1] output plugin for sending logs to an HTTP and HTTPS endpoint.
 
 ## Configs
 
     <match *>
-      type https
+      type            http
+      use_ssl         true
       endpoint_url    https://localhost.local/api/
       http_method     post
       serializer      json
@@ -17,8 +18,7 @@ A generic [fluentd][1] output plugin for sending logs to an HTTPS endpoint.
 
 ## Note
 
-* Does not support http.
-* Uses SSL, but does not verify the peer.
+* By default, it does not verify the https server. Use VERIFY_PEER and place the cert.pem to the location specified by OpenSSL::X509::DEFAULT_CERT_FILE. 
 * Majority of the code are cloned from  [fluent-plugin-out-http][2]
 
   [1]: http://fluentd.org/
