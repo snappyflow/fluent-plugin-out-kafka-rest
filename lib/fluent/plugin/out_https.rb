@@ -12,6 +12,9 @@ class Fluent::HTTPSOutput < Fluent::Output
   # https or http
   config_param :use_ssl, :bool, :default => false
 
+  # include tag
+  config_param :include_tag, :bool, :default => false
+
   # Endpoint URL ex. localhost.local/api/
   config_param :endpoint_url, :string
 
@@ -34,6 +37,7 @@ class Fluent::HTTPSOutput < Fluent::Output
     super
 
     @use_ssl = conf['use_ssl']
+    @include_tag = conf['include_tag']
 
     serializers = [:json, :form]
     @serializer = if serializers.include? @serializer.intern
@@ -69,6 +73,9 @@ class Fluent::HTTPSOutput < Fluent::Output
   end
 
   def set_body(req, tag, time, record)
+    if @include_tag
+      record['tag'] = tag
+    end 
     if @serializer == :json
       set_json_body(req, record)
     else
