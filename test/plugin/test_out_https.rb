@@ -141,6 +141,7 @@ class HTTPSOutputTest < HTTPSOutputTestBase
   CONFIG = %[
     use_ssl true
     include_tag true
+    include_timestamp true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
   ]
 
@@ -198,6 +199,7 @@ class HTTPSOutputTest < HTTPSOutputTestBase
     assert_equal URI.escape("あ"), record[:form]['binary']
     assert_nil record[:auth]
     assert_not_nil record[:form]['tag']
+    assert_not_nil record[:form]['timestamp']
 
     d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1 })
     d.run
@@ -217,6 +219,7 @@ class HTTPSOutputTest < HTTPSOutputTestBase
     assert_equal '50', record[:form]['field1']
     assert_nil record[:auth]
     assert_nil record[:form]['tag']
+    assert_nil record[:form]['timestamp']
 
     d.emit({ 'field1' => 50 })
     d.run

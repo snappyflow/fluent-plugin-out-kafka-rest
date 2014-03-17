@@ -15,6 +15,9 @@ class Fluent::HTTPSOutput < Fluent::Output
   # include tag
   config_param :include_tag, :bool, :default => false
 
+  # include timestamp
+  config_param :include_timestamp, :bool, :default => false
+
   # Endpoint URL ex. localhost.local/api/
   config_param :endpoint_url, :string
 
@@ -38,6 +41,7 @@ class Fluent::HTTPSOutput < Fluent::Output
 
     @use_ssl = conf['use_ssl']
     @include_tag = conf['include_tag']
+    @include_timestamp = conf['include_timestamp']
 
     serializers = [:json, :form]
     @serializer = if serializers.include? @serializer.intern
@@ -75,6 +79,9 @@ class Fluent::HTTPSOutput < Fluent::Output
   def set_body(req, tag, time, record)
     if @include_tag
       record['tag'] = tag
+    end
+    if @include_timestamp
+      record['timestamp'] = Time.now
     end 
     if @serializer == :json
       set_json_body(req, record)
