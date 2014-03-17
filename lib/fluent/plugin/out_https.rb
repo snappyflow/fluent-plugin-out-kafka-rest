@@ -81,7 +81,7 @@ class Fluent::HTTPSOutput < Fluent::Output
       record['tag'] = tag
     end
     if @include_timestamp
-      record['timestamp'] = Time.now
+      record['timestamp'] = Time.now.to_i
     end 
     if @serializer == :json
       set_json_body(req, record)
