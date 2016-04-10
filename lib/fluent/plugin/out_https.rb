@@ -96,7 +96,7 @@ class Fluent::HTTPSOutput < Fluent::Output
     req
   end
 
-  def set_json_body(req, data
+  def set_json_body(req, data)
     dumped_data = Yajl.dump(data)
     encoded_data = Base64.encode64(dumped_data)
     req.body = Yajl.dump({ "records" => [{ "value" => encoded_data }] })
