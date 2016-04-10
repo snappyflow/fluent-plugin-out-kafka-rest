@@ -18,6 +18,12 @@ A generic [fluentd][1] output plugin for sending logs to an HTTP and HTTPS endpo
       # password        bobpop
     </match>
 
+## ToDo
+
+* Change tests
+* Fix the function to include tags and timestamps.
+  We should include such information into the request body.
+* Add function to submit multiple records at once.
 
 ## Note
 
