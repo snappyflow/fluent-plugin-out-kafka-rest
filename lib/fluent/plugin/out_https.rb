@@ -7,6 +7,7 @@ class Fluent::HTTPSOutput < Fluent::Output
     require 'openssl'
     require 'uri'
     require 'yajl'
+    require 'base64'
   end
 
   # https or http
@@ -95,8 +96,10 @@ class Fluent::HTTPSOutput < Fluent::Output
     req
   end
 
-  def set_json_body(req, data)
-    req.body = Yajl.dump({ :records => [{ :value => data }] })
+  def set_json_body(req, data
+    dumped_data = Yajl.dump(data)
+    encoded_data = Base64.encode64(dumped_data)
+    req.body = Yajl.dump({ "records" => [{ "value" => encoded_data }] })
     req['Content-Type'] = 'application/vnd.kafka.binary.v1+json'
   end
 
