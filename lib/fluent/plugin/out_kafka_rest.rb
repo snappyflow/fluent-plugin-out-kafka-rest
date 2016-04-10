@@ -1,5 +1,5 @@
 class Fluent::HTTPSOutput < Fluent::Output
-  Fluent::Plugin.register_output('http', self)
+  Fluent::Plugin.register_output('kafka-rest', self)
 
   def initialize
     super
