@@ -96,8 +96,8 @@ class Fluent::HTTPSOutput < Fluent::Output
   end
 
   def set_json_body(req, data)
-    req.body = Yajl.dump(data)
-    req['Content-Type'] = 'application/json'
+    req.body = Yajl.dump({ :records => [data] })
+    req['Content-Type'] = 'application/vnd.kafka.binary.v1+json'
   end
 
   def create_request(tag, time, record)
