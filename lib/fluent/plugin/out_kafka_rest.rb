@@ -25,8 +25,11 @@ class Fluent::HTTPSOutput < Fluent::Output
   # HTTP method
   config_param :http_method, :string, :default => :post
   
-  # form | json
-  config_param :serializer, :string, :default => :form
+  # one | any
+  config_param :serializer, :string, :default => :one
+
+  # Content-Type
+  config_param :content_type, :string, :default => 'application/json'
 
   # Simple rate limiting: ignore any records within `rate_limit_msec`
   # since the last one.
@@ -44,12 +47,14 @@ class Fluent::HTTPSOutput < Fluent::Output
     @include_tag = conf['include_tag']
     @include_timestamp = conf['include_timestamp']
 
-    serializers = [:json, :form]
+    serializers = [:one, :any]
     @serializer = if serializers.include? @serializer.intern
                     @serializer.intern
                   else
-                    :form
+                    :any
                   end
+
+    @content_type = conf['content_type']
 
     http_methods = [:get, :put, :post, :delete]
     @http_method = if http_methods.include? @http_method.intern
@@ -84,10 +89,11 @@ class Fluent::HTTPSOutput < Fluent::Output
     if @include_timestamp
       record['timestamp'] = Time.now.to_i
     end 
-    if @serializer == :json
+    if @serializer == :one
       set_json_body(req, record)
     else
       req.set_form_data(record)
+      req['Content-Type'] = @content_type
     end
     req
   end
