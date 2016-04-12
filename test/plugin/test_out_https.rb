@@ -3,9 +3,10 @@ require 'net/https'
 require 'uri'
 require 'yajl'
 require 'fluent/test/https_output_test'
-require 'fluent/plugin/out_https'
+require 'fluent/plugin/out_kafka_rest'
 require 'webrick'
 require 'webrick/https'
+require 'base64'
 
 TEST_LISTEN_PORT = 5126
 
@@ -27,7 +28,8 @@ class HTTPSOutputTestBase < Test::Unit::TestCase
               WEBrick::HTTPServer.new({:BindAddress => '127.0.0.1', :Port => TEST_LISTEN_PORT, :Logger => logger, :AccessLog => [], :SSLEnable => true, :SSLCertName  => [ [ 'CN', WEBrick::Utils::getservername ] ]})
             end
       begin
-        allowed_methods = %w(POST PUT)
+        # Kafka REST Proxy accepts only POST method at the moment
+        allowed_methods = %w(POST)
         srv.mount_proc('/api/') { |req,res|
           @requests += 1
           unless allowed_methods.include? req.request_method
@@ -46,8 +48,9 @@ class HTTPSOutputTestBase < Test::Unit::TestCase
           end
 
           record = {:auth => nil}
-          if req.content_type == 'application/json'
-            record[:json] = Yajl.load(req.body)
+          if req.content_type == 'application/vnd.kafka.binary.v1+json'
+            raw_content = Yajl.load(req.body)
+            record[:body] = raw_content["records"].map{|s| Base64.decode64(s["value"])}
           else
             record[:form] = Hash[*(req.body.split('&').map{|kv|kv.split('=')}.flatten)]
           end
@@ -145,10 +148,17 @@ class HTTPSOutputTest < HTTPSOutputTestBase
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
   ]
 
-  CONFIG_JSON = %[
+  CONFIG_ONE = %[
     use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
-    serializer json
+    serializer one
+  ]
+
+  CONFIG_ANY = %[
+    use_ssl true
+    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
+    serializer any
+    content_type application/json
   ]
 
   CONFIG_PUT = %[
@@ -171,77 +181,82 @@ class HTTPSOutputTest < HTTPSOutputTestBase
   ]
 
   def create_driver(conf=CONFIG, tag='test.metrics')
-    Fluent::Test::OutputTestDriver.new(Fluent::HTTPSOutput, tag).configure(conf)
+    Fluent::Test::OutputTestDriver.new(Fluent::KafkaRestOutput, tag).configure(conf)
   end
 
   def test_configure
     d = create_driver
     assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
-    assert_equal :form, d.instance.serializer
+    assert_equal :one, d.instance.serializer
 
-    d = create_driver CONFIG_JSON
+    d = create_driver CONFIG_ONE
     assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
-    assert_equal :json, d.instance.serializer
+    assert_equal :one, d.instance.serializer
+
+    d = create_driver CONFIG_ANY
+    assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
+    assert_equal :any, d.instance.serializer
   end
 
-  def test_emit_form
-    d = create_driver
-    d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1, 'binary' => "\xe3\x81\x82".force_encoding("ascii-8bit") })
-    d.run
+  #def test_emit_form
+  #  d = create_driver
+  #  d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1, 'binary' => "\xe3\x81\x82".force_encoding("ascii-8bit") })
+  #  d.run
 
-    assert_equal 1, @posts.size
-    record = @posts[0]
+  #  assert_equal 1, @posts.size
+  #  record = @posts[0]
 
-    assert_equal '50', record[:form]['field1']
-    assert_equal '20', record[:form]['field2']
-    assert_equal '10', record[:form]['field3']
-    assert_equal '1', record[:form]['otherfield']
-    assert_equal URI.escape("あ"), record[:form]['binary']
-    assert_nil record[:auth]
-    assert_not_nil record[:form]['tag']
-    assert_not_nil record[:form]['timestamp']
+  #  assert_equal '50', record[:form]['field1']
+  #  assert_equal '20', record[:form]['field2']
+  #  assert_equal '10', record[:form]['field3']
+  #  assert_equal '1', record[:form]['otherfield']
+  #  assert_equal URI.escape("あ"), record[:form]['binary']
+  #  assert_nil record[:auth]
+  #  assert_not_nil record[:form]['tag']
+  #  assert_not_nil record[:form]['timestamp']
 
-    d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1 })
-    d.run
+  #  d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1 })
+  #  d.run
 
-    assert_equal 2, @posts.size
-  end
+  #  assert_equal 2, @posts.size
+  #end
 
-  def test_emit_form_put
-    d = create_driver CONFIG_PUT
-    d.emit({ 'field1' => 50 })
-    d.run
+  #def test_emit_form_put
+  #  d = create_driver CONFIG_PUT
+  #  d.emit({ 'field1' => 50 })
+  #  d.run
 
-    assert_equal 0, @posts.size
-    assert_equal 1, @puts.size
-    record = @puts[0]
+  #  assert_equal 0, @posts.size
+  #  assert_equal 1, @puts.size
+  #  record = @puts[0]
 
-    assert_equal '50', record[:form]['field1']
-    assert_nil record[:auth]
-    assert_nil record[:form]['tag']
-    assert_nil record[:form]['timestamp']
+  #  assert_equal '50', record[:form]['field1']
+  #  assert_nil record[:auth]
+  #  assert_nil record[:form]['tag']
+  #  assert_nil record[:form]['timestamp']
 
-    d.emit({ 'field1' => 50 })
-    d.run
+  #  d.emit({ 'field1' => 50 })
+  #  d.run
 
-    assert_equal 0, @posts.size
-    assert_equal 2, @puts.size
-  end
+  #  assert_equal 0, @posts.size
+  #  assert_equal 2, @puts.size
+  #end
 
-  def test_emit_json
+  def test_emit_one
     binary_string = "\xe3\x81\x82".force_encoding("ascii-8bit")
-    d = create_driver CONFIG_JSON
+    d = create_driver CONFIG_ONE
     d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1, 'binary' => binary_string })
     d.run
 
     assert_equal 1, @posts.size
     record = @posts[0]
+    body = Yajl.load(record[:body][0])
 
-    assert_equal 50, record[:json]['field1']
-    assert_equal 20, record[:json]['field2']
-    assert_equal 10, record[:json]['field3']
-    assert_equal 1, record[:json]['otherfield']
-    assert_equal binary_string, record[:json]['binary']
+    assert_equal 50, body['field1']
+    assert_equal 20, body['field2']
+    assert_equal 10, body['field3']
+    assert_equal 1, body['otherfield']
+    assert_equal binary_string, body['binary']
     assert_nil record[:auth]
   end
 

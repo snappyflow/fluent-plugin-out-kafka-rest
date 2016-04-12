@@ -1,4 +1,4 @@
-class Fluent::HTTPSOutput < Fluent::Output
+class Fluent::KafkaRestOutput < Fluent::Output
   Fluent::Plugin.register_output('kafka-rest', self)
 
   def initialize
@@ -56,7 +56,8 @@ class Fluent::HTTPSOutput < Fluent::Output
 
     @content_type = conf['content_type']
 
-    http_methods = [:get, :put, :post, :delete]
+    # Kafka REST Proxy accepts only POST method at the moment
+    http_methods = [:post]
     @http_method = if http_methods.include? @http_method.intern
                     @http_method.intern
                   else
