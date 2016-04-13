@@ -25,8 +25,8 @@ class Fluent::KafkaRestOutput < Fluent::Output
   # HTTP method
   config_param :http_method, :string, :default => :post
   
-  # one | any
-  config_param :serializer, :string, :default => :one
+  # json_bin ( Should support avro in the future)
+  config_param :serializer, :string, :default => :json_bin
 
   # Content-Type
   config_param :content_type, :string, :default => 'application/json'
@@ -47,11 +47,11 @@ class Fluent::KafkaRestOutput < Fluent::Output
     @include_tag = conf['include_tag']
     @include_timestamp = conf['include_timestamp']
 
-    serializers = [:one, :any]
+    serializers = [:json_bin]  # Should support :avro in the future
     @serializer = if serializers.include? @serializer.intern
                     @serializer.intern
                   else
-                    :any
+                    :json_bin
                   end
 
     @content_type = conf['content_type']
@@ -84,17 +84,17 @@ class Fluent::KafkaRestOutput < Fluent::Output
   end
 
   def set_body(req, tag, time, record)
+    # TODO: Add avro support
     if @include_tag
       record['tag'] = tag
     end
     if @include_timestamp
       record['timestamp'] = Time.now.to_i
     end 
-    if @serializer == :one
+    if @serializer == :json_bin
       set_json_body(req, record)
-    else
-      req.set_form_data(record)
-      req['Content-Type'] = @content_type
+    # elsif @serializer == :avro
+    #   set_avro_body(req, record)
     end
     req
   end
@@ -108,6 +108,10 @@ class Fluent::KafkaRestOutput < Fluent::Output
     encoded_data = Base64.encode64(dumped_data)
     req.body = Yajl.dump({ "records" => [{ "value" => encoded_data }] })
     req['Content-Type'] = 'application/vnd.kafka.binary.v1+json'
+  end
+
+  def set_avro_body(req, data)
+    # TODO: Implement avro body parser
   end
 
   def create_request(tag, time, record)
