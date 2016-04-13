@@ -1,5 +1,5 @@
 class Fluent::KafkaRestOutput < Fluent::Output
-  Fluent::Plugin.register_output('kafka-rest', self)
+  Fluent::Plugin.register_output('kafka_rest', self)
 
   def initialize
     super

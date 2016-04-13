@@ -8,7 +8,7 @@ for the detail of REST Proxy service.
 ## Configs
 
     <match *>
-      type            kafka-rest
+      type            kafka_rest
       endpoint_url    https://localhost.local/api/
       # use_ssl         false
       # include_tag     false
