@@ -1,6 +1,9 @@
-# fluent-plugin-out-kafka-rest, a plugin for [Fluentd](http://fluentd.org)
+# fluent-plugin-out-kafka-rest, a plugin for [Fluentd](http://fluentd.org) (WIP)
 
-A generic [fluentd][1] output plugin for sending logs to an HTTP and HTTPS endpoint.
+A [fluentd][1] output plugin for sending logs to Kafka REST Proxy.
+This plugin does not use the native library of Apache Kafka itself.
+Please refer to Confluent's [kakfa-rest](https://github.com/confluentinc/kafka-rest)
+for the detail of REST Proxy service.
 
 ## Configs
 
