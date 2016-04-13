@@ -143,28 +143,13 @@ end
 class HTTPSOutputTest < HTTPSOutputTestBase
   CONFIG = %[
     use_ssl true
-    include_tag true
-    include_timestamp true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
   ]
 
-  CONFIG_ONE = %[
+  CONFIG_JSON_BIN = %[
     use_ssl true
     endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
-    serializer one
-  ]
-
-  CONFIG_ANY = %[
-    use_ssl true
-    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
-    serializer any
-    content_type application/json
-  ]
-
-  CONFIG_PUT = %[
-    use_ssl true
-    endpoint_url https://127.0.0.1:#{TEST_LISTEN_PORT}/api/
-    http_method put
+    serializer json_bin
   ]
 
   CONFIG_HTTP_ERROR = %[
@@ -187,64 +172,16 @@ class HTTPSOutputTest < HTTPSOutputTestBase
   def test_configure
     d = create_driver
     assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
-    assert_equal :one, d.instance.serializer
+    assert_equal :json_bin, d.instance.serializer
 
-    d = create_driver CONFIG_ONE
+    d = create_driver CONFIG_JSON_BIN
     assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
-    assert_equal :one, d.instance.serializer
-
-    d = create_driver CONFIG_ANY
-    assert_equal "https://127.0.0.1:#{TEST_LISTEN_PORT}/api/", d.instance.endpoint_url
-    assert_equal :any, d.instance.serializer
+    assert_equal :json_bin, d.instance.serializer
   end
 
-  #def test_emit_form
-  #  d = create_driver
-  #  d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1, 'binary' => "\xe3\x81\x82".force_encoding("ascii-8bit") })
-  #  d.run
-
-  #  assert_equal 1, @posts.size
-  #  record = @posts[0]
-
-  #  assert_equal '50', record[:form]['field1']
-  #  assert_equal '20', record[:form]['field2']
-  #  assert_equal '10', record[:form]['field3']
-  #  assert_equal '1', record[:form]['otherfield']
-  #  assert_equal URI.escape("あ"), record[:form]['binary']
-  #  assert_nil record[:auth]
-  #  assert_not_nil record[:form]['tag']
-  #  assert_not_nil record[:form]['timestamp']
-
-  #  d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1 })
-  #  d.run
-
-  #  assert_equal 2, @posts.size
-  #end
-
-  #def test_emit_form_put
-  #  d = create_driver CONFIG_PUT
-  #  d.emit({ 'field1' => 50 })
-  #  d.run
-
-  #  assert_equal 0, @posts.size
-  #  assert_equal 1, @puts.size
-  #  record = @puts[0]
-
-  #  assert_equal '50', record[:form]['field1']
-  #  assert_nil record[:auth]
-  #  assert_nil record[:form]['tag']
-  #  assert_nil record[:form]['timestamp']
-
-  #  d.emit({ 'field1' => 50 })
-  #  d.run
-
-  #  assert_equal 0, @posts.size
-  #  assert_equal 2, @puts.size
-  #end
-
-  def test_emit_one
+  def test_emit_json_bin
     binary_string = "\xe3\x81\x82".force_encoding("ascii-8bit")
-    d = create_driver CONFIG_ONE
+    d = create_driver CONFIG_JSON_BIN
     d.emit({ 'field1' => 50, 'field2' => 20, 'field3' => 10, 'otherfield' => 1, 'binary' => binary_string })
     d.run
 
