@@ -9,16 +9,10 @@ for the detail of REST Proxy service.
 
     <match *>
       type            kafka_rest
-      endpoint_url    https://localhost.local/api/
+      endpoint_url    https://localhost.local:8082/topics/topic
       # use_ssl         false
-      # include_tag     false
-      # include_timestamp false
-      # http_method     post
-      # serializer      one
+      # serializer      json_bin
       # rate_limit_msec 0
-      # authentication  basic  # default: nil
-      # username        alice
-      # password        bobpop
     </match>
 
 ## ToDo
