@@ -5,3 +5,6 @@
 
 ## 0.1.1
 * Fix plugin type name
+
+## 0.1.1.1
+* Fix README
