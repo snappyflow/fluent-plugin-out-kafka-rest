@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "fluent-plugin-out-kafka-rest"
-  gem.version       = "0.1.0"
+  gem.version       = "0.1.1"
   gem.authors       = ["dobachi"]
   gem.email         = ["dobachi1983oss@gmail.com"]
   gem.summary       = %q{A fluentd output plugin for sending logs to Kafka REST Proxy}
