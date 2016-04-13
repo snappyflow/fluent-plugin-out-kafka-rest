@@ -25,6 +25,7 @@ A generic [fluentd][1] output plugin for sending logs to an HTTP and HTTPS endpo
   We should include such information into the request body.
 * Add function to submit multiple records at once.
 * Try SSL via ELB
+* Avro support
 
 ## Note
 
