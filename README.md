@@ -9,11 +9,32 @@ for the detail of REST Proxy service.
 
     <match *>
       type            kafka_rest
-      endpoint_url    https://localhost.local:8082/topics/topic
+      endpoint_url    http://localhost.local:8082/topics/topic
       # use_ssl         false
       # serializer      json_bin
       # rate_limit_msec 0
     </match>
+
+## use https
+
+When you use https instead of http,
+set "use_ssl" to true.
+
+The following is an example.
+
+    <match *>
+      type            kafka_rest
+      endpoint_url    https://localhost.local:8082/topics/topic
+      use_ssl         true
+      # serializer      json_bin
+      # rate_limit_msec 0
+    </match>
+
+I simply tested https mode with AWS's ELB.
+
+IMAGE
+
+ fluentd --> ELB --> Kafka REST Proxy --> Kafka
 
 ## ToDo
 
@@ -21,7 +42,6 @@ for the detail of REST Proxy service.
 * Fix the function to include tags and timestamps.
   We should include such information into the request body.
 * Add function to submit multiple records at once.
-* Try SSL via ELB
 * Avro support
 
 ## Note
