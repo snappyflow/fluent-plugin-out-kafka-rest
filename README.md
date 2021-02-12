@@ -26,6 +26,7 @@ The following is an example.
     <match *>
       type            kafka_rest
       endpoint_url    https://localhost.local:8082/topics/topic
+      token           authtoken
       use_ssl         true
       # serializer      json_bin
       # rate_limit_msec 0
