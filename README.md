@@ -10,6 +10,7 @@ for the detail of REST Proxy service.
     <match *>
       type            kafka_rest
       endpoint_url    http://localhost.local:8082/topics/topic
+      token           authtoken
       # use_ssl         false
       # serializer      json_bin
       # rate_limit_msec 0
