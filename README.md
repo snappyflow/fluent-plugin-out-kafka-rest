@@ -10,8 +10,8 @@ for the detail of REST Proxy service.
     <match *>
       type            kafka_rest
       endpoint_url    http://localhost.local:8082/topics/topic
+      token           authtoken
       # use_ssl         false
-      # serializer      json_bin
       # rate_limit_msec 0
     </match>
 
@@ -25,8 +25,8 @@ The following is an example.
     <match *>
       type            kafka_rest
       endpoint_url    https://localhost.local:8082/topics/topic
+      token           authtoken
       use_ssl         true
-      # serializer      json_bin
       # rate_limit_msec 0
     </match>
 
@@ -49,7 +49,6 @@ IMAGE
 * Set `use_ssl` to true to use https connection
 * Set `include_tag` to true to include fluentd tag in the event log as a property 
 * Set `include_timestamp` to true to include timestamp (UNIX time) in the event log as a property
-* Set `serializer` to any to use your own serializer rule except for Kafka REST Proxy's JSON protocol
 * By default, it does not verify the https server. Use VERIFY_PEER and place the cert.pem to the location specified by OpenSSL::X509::DEFAULT_CERT_FILE. 
 * Majority of the code are cloned from  [fluent-plugin-out-https][2]
 

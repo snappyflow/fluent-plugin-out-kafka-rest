@@ -1,23 +1,26 @@
-class Fluent::KafkaRestOutput < Fluent::Output
+require 'net/https'
+require 'openssl'
+require 'uri'
+require 'yajl'
+require 'base64'
+require 'fluent/plugin/output'
+require 'json'
+module Fluent::Plugin
+class KafkaRestOutput < Output
   Fluent::Plugin.register_output('kafka_rest', self)
-
+  helpers :formatter
   def initialize
+    @formatter = nil
     super
-    require 'net/https'
-    require 'openssl'
-    require 'uri'
-    require 'yajl'
-    require 'base64'
   end
-
   # https or http
   config_param :use_ssl, :bool, :default => false
 
-  # include tag
-  config_param :include_tag, :bool, :default => false
+  # # include tag
+  # config_param :include_tag, :bool, :default => false
 
-  # include timestamp
-  config_param :include_timestamp, :bool, :default => false
+  # # include timestamp
+  # config_param :include_timestamp, :bool, :default => false
 
   # Endpoint URL ex. localhost.local/api/
   config_param :endpoint_url, :string
@@ -25,8 +28,8 @@ class Fluent::KafkaRestOutput < Fluent::Output
   # HTTP method
   config_param :http_method, :string, :default => :post
   
-  # json_bin ( Should support avro in the future)
-  config_param :serializer, :string, :default => :json_bin
+  # json ( Should support avro in the future)
+  config_param :serializer, :string, :default => :json
 
   # Content-Type
   config_param :content_type, :string, :default => 'application/json'
@@ -34,24 +37,27 @@ class Fluent::KafkaRestOutput < Fluent::Output
   # Simple rate limiting: ignore any records within `rate_limit_msec`
   # since the last one.
   config_param :rate_limit_msec, :integer, :default => 0
-
+  config_section :format do
+      config_set_default :@type, 'json'
+  end
   # nil | 'none' | 'basic'
-  config_param :authentication, :string, :default => nil 
+  #config_param :authentication, :string, :default => nil 
   config_param :username, :string, :default => ''
   config_param :password, :string, :default => ''
-
+  config_param :token, :string, :default => ''
   def configure(conf)
     super
 
     @use_ssl = conf['use_ssl']
-    @include_tag = conf['include_tag']
-    @include_timestamp = conf['include_timestamp']
-
-    serializers = [:json_bin]  # Should support :avro in the future
+    #   @include_tag = conf['include_tag']
+    #   @include_timestamp = conf['include_timestamp']
+    @formatter = formatter_create
+    define_singleton_method(:format, method(:format_json_array))
+    serializers = [:json]  # Should support :avro in the future
     @serializer = if serializers.include? @serializer.intern
                     @serializer.intern
                   else
-                    :json_bin
+                    :json
                   end
 
     @content_type = conf['content_type']
@@ -64,11 +70,12 @@ class Fluent::KafkaRestOutput < Fluent::Output
                     :post
                   end
 
-    @auth = case @authentication
-            when 'basic' then :basic
-            else
-              :none
-            end
+    # @auth = case @authentication
+    #         when 'basic' then :basic
+    #         when 'bearer' then :bearer
+    #         else
+    #           :none
+    #         end
   end
 
   def start
@@ -79,47 +86,64 @@ class Fluent::KafkaRestOutput < Fluent::Output
     super
   end
 
-  def format_url(tag, time, record)
+  def format_url()
     @endpoint_url
   end
+  def formatted_to_msgpack_binary?
+    @formatter_configs.first[:@type] == 'msgpack'
+  end
 
-  def set_body(req, tag, time, record)
+  def format(tag, time, record)
+    @formatter.format(tag, time, record)
+  end
+
+  def format_json_array(tag, time, record)
+    record["time"] = time * 1000
+    @formatter.format(tag, time, record) << ","
+  end
+  def set_body(req, chunk)
     # TODO: Add avro support
-    if @include_tag
-      record['tag'] = tag
-    end
-    if @include_timestamp
-      record['timestamp'] = Time.now.to_i
-    end 
-    if @serializer == :json_bin
-      set_json_body(req, record)
-    # elsif @serializer == :avro
-    #   set_avro_body(req, record)
+    #   if @include_tag
+    #     record['tag'] = tag
+    #   end
+    #   if @include_timestamp
+    #     record['timestamp'] = Time.now.to_i
+    #   end 
+    if @serializer == :json
+      set_json_body(req, chunk)
     end
     req
   end
 
-  def set_header(req, tag, time, record)
+  def set_header(req)
+    req['Content-Type'] = 'application/vnd.kafka.json.v2+json'
+    req['Accept'] = 'application/vnd.kafka.v2+json'
+    req['Authorization'] = @token
     req
   end
 
-  def set_json_body(req, data)
-    dumped_data = Yajl.dump(data)
-    encoded_data = Base64.encode64(dumped_data)
-    req.body = Yajl.dump({ "records" => [{ "value" => encoded_data }] })
-    req['Content-Type'] = 'application/vnd.kafka.binary.v1+json'
+  def set_json_body(req, chunk)
+    payload = {}
+    payload["records"] = []
+    parsed = JSON.parse("[#{chunk.read.chop}]")
+    parsed.each { |record| 
+    value = {}
+    value["value"] = record
+    payload["records"].append(value)
+    }
+    req.body = Yajl.dump(payload)
   end
 
   def set_avro_body(req, data)
     # TODO: Implement avro body parser
   end
 
-  def create_request(tag, time, record)
-    url = format_url(tag, time, record)
+  def create_request(chunk)
+    url = format_url()
     uri = URI.parse(url)
     req = Net::HTTP.const_get(@http_method.to_s.capitalize).new(uri.path)
-    set_body(req, tag, time, record)
-    set_header(req, tag, time, record)
+    set_body(req, chunk)
+    set_header(req)
     return req, uri
   end
 
@@ -132,14 +156,10 @@ class Fluent::KafkaRestOutput < Fluent::Output
     
     res = nil
     begin
-      if @auth and @auth == :basic
-        req.basic_auth(@username, @password)
-      end
       @last_request_time = Time.now.to_f
       https = Net::HTTP.new(uri.host, uri.port)
       https.use_ssl = @use_ssl
       https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE 
-#      https.verify_mode = OpenSSL::SSL::VERIFY_PEER
       https.verify_mode = OpenSSL::SSL::VERIFY_NONE
       res = https.start {|http| http.request(req) }
     rescue IOError, EOFError, SystemCallError
@@ -156,15 +176,13 @@ class Fluent::KafkaRestOutput < Fluent::Output
     end
   end
 
-  def handle_record(tag, time, record)
-    req, uri = create_request(tag, time, record)
+  def handle_chunks(chunk)
+    req, uri = create_request(chunk)
     send_request(req, uri)
   end
 
-  def emit(tag, es, chain)
-    es.each do |time, record|
-      handle_record(tag, time, record)
-    end
-    chain.next
+  def write(chunk)
+    handle_chunks(chunk)
   end
+end
 end
