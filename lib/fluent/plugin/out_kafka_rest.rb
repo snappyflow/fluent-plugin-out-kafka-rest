@@ -5,6 +5,7 @@ require 'yajl'
 require 'base64'
 require 'fluent/plugin/output'
 require 'json'
+require 'time'
 module Fluent::Plugin
 class KafkaRestOutput < Output
   Fluent::Plugin.register_output('kafka_rest', self)
@@ -25,9 +26,13 @@ class KafkaRestOutput < Output
   # Endpoint URL ex. localhost.local/api/
   config_param :endpoint_url, :string
 
+  # Time info handling
+  config_param :time_key, :string, :default => nil
+  config_param :time_key_format, :string, :default => nil
+  config_param :remove_key_name_field, :bool, :default => false
   # HTTP method
   config_param :http_method, :string, :default => :post
-  
+
   # json ( Should support avro in the future)
   config_param :serializer, :string, :default => :json
 
@@ -41,7 +46,7 @@ class KafkaRestOutput < Output
       config_set_default :@type, 'json'
   end
   # nil | 'none' | 'basic'
-  #config_param :authentication, :string, :default => nil 
+  #config_param :authentication, :string, :default => nil
   config_param :username, :string, :default => ''
   config_param :password, :string, :default => ''
   config_param :token, :string, :default => ''
@@ -98,7 +103,19 @@ class KafkaRestOutput < Output
   end
 
   def format_json_array(tag, time, record)
-    record["time"] = time * 1000
+    is_time_parsed = false 
+    if @time_key && @time_key_format
+        if record.has_key?@time_key
+            record["time"] = (Time.strptime(record[@time_key],@time_key_format).to_f*1000).round()
+            is_time_parsed = true
+            if @remove_key_name_field
+                record.delete(@time_key)
+            end
+        end
+    end
+    if ! is_time_parsed
+        record["time"] = time * 1000
+    end
     @formatter.format(tag, time, record) << ","
   end
   def set_body(req, chunk)
@@ -108,7 +125,7 @@ class KafkaRestOutput < Output
     #   end
     #   if @include_timestamp
     #     record['timestamp'] = Time.now.to_i
-    #   end 
+    #   end
     if @serializer == :json
       set_json_body(req, chunk)
     end
@@ -126,7 +143,7 @@ class KafkaRestOutput < Output
     payload = {}
     payload["records"] = []
     parsed = JSON.parse("[#{chunk.read.chop}]")
-    parsed.each { |record| 
+    parsed.each { |record|
     value = {}
     value["value"] = record
     payload["records"].append(value)
@@ -147,19 +164,19 @@ class KafkaRestOutput < Output
     return req, uri
   end
 
-  def send_request(req, uri)    
+  def send_request(req, uri)
     is_rate_limited = (@rate_limit_msec != 0 and not @last_request_time.nil?)
     if is_rate_limited and ((Time.now.to_f - @last_request_time) * 1000.0 < @rate_limit_msec)
       $log.info('Dropped request due to rate limiting')
       return
     end
-    
+
     res = nil
     begin
       @last_request_time = Time.now.to_f
       https = Net::HTTP.new(uri.host, uri.port)
       https.use_ssl = @use_ssl
-      https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE 
+      https.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE
       https.verify_mode = OpenSSL::SSL::VERIFY_NONE
       res = https.start {|http| http.request(req) }
     rescue IOError, EOFError, SystemCallError
