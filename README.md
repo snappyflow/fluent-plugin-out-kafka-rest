@@ -8,13 +8,13 @@ for the detail of REST Proxy service.
 ## Configs
 
     <match *>
-      type            kafka_rest
-      endpoint_url    http://localhost.local:8082/topics/topic
-      token           authtoken
-      <buffer>
-        flush_interval 10s
-      </buffer>
-      # use_ssl         false
+      type                   kafka_rest
+      endpoint_url           http://localhost.local:8082/topics/topic
+      token                  authtoken
+      time_key               log_time
+      time_key_format        %Y-%m-%d %H:%M:%S.%L %Z
+      remove_key_name_field  true
+      # use_ssl              false
       # rate_limit_msec 0
     </match>
 
@@ -26,15 +26,16 @@ set "use_ssl" to true.
 The following is an example.
 
     <match *>
-      type            kafka_rest
-      endpoint_url    https://localhost.local:8082/topics/topic
-      token           authtoken
-      <buffer>
-        flush_interval 10s
-      </buffer>
-      use_ssl         true
+      type                   kafka_rest
+      endpoint_url           https://localhost.local:8082/topics/topic
+      token                  authtoken
+      use_ssl                true
+      time_key               log_time
+      time_key_format        %Y-%m-%d %H:%M:%S.%L %Z
+      remove_key_name_field  true
       # rate_limit_msec 0
     </match>
+
 
 For additional buffer configuration, refer https://docs.fluentd.org/configuration/buffer-section
 
